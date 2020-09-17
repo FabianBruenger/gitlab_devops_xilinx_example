@@ -12,7 +12,7 @@ stages: # ---------------------------------------------------------------------
     - local,windows
   before_script:
     - dir
-    - P:\Xilinx\Vivado\2020.1\.settings64-Vivado.bat
+    - P:\Xilinx\Vivado\2020.1\.settings64-Vivado.bat # give your local path !
 
 .job_template: &template_prepare
   <<: *template_base
@@ -55,7 +55,7 @@ stages: # ---------------------------------------------------------------------
     - vivado -mode batch -source wvtcl\synthesis.tcl
     - batch\check.bat
   after_script:
-      - copy build\pomaa\pomaa.runs\synth_1\runme.log build\logs\project_synthesis.log
+      - copy build\test\test.runs\synth_1\runme.log build\logs\project_synthesis.log
   artifacts:
     when: on_success
     name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
@@ -70,9 +70,9 @@ stages: # ---------------------------------------------------------------------
     - synthesis
   script:
     - vivado -mode batch -source wvtcl\implementation.tcl
-    - batch\check.bat
+    - batch\check.bat #optional !
   after_script:
-      - copy build\pomaa\pomaa.runs\impl_1\runme.log build\logs\project_implementation.log
+      - copy build\test\test.runs\impl_1\runme.log build\logs\project_implementation.log
   artifacts:
     when: on_success
     name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
@@ -87,8 +87,6 @@ stages: # ---------------------------------------------------------------------
     - build
   script:
     - vivado -mode batch -source wvtcl\simulation.tcl
-  # after_script:
-  #     - copy build\pomaa\pomaa.runs\impl_1\runme.log build\logs\project_implementation.log
   artifacts:
     when: on_success
     name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
