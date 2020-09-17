@@ -1,0 +1,111 @@
+stages: # ---------------------------------------------------------------------
+  - prepare
+  - build
+  - synthesis
+  - implement
+  - simulate
+
+# Job templates ---------------------------------------------------------------
+# Job 1. Prepare paths for build
+.job_template: &template_base
+  tags:
+    - local,windows
+  before_script:
+    - dir
+    - P:\Xilinx\Vivado\2020.1\.settings64-Vivado.bat
+
+.job_template: &template_prepare
+  <<: *template_base
+  stage: prepare
+  script:
+    - dir
+    - mkdir build\logs
+    - New-Item -Path "build\logs\" -Name "project.log" -ItemType "file" -Value ""
+    - dir                                                      
+  artifacts:
+    when: on_success
+    name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
+    paths:
+      - .\build
+    expire_in: 15 minutes #1 day #5 minutes
+
+#Job2: Build the vivado project as artifact
+.job_template: &template_build
+  <<: *template_base
+  stage: build
+  dependencies: 
+    - prepare                                                             
+  script:
+    - dir                                                        
+    - vivado -mode batch -source wvtcl\create.tcl
+  artifacts:
+    when: on_success
+    name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
+    paths:
+      - .\build
+    expire_in: 15 minutes #1 day #5 minutes
+
+#Job2: Simulate loading machine code to bram, executing test, writing into output files
+.job_template: &template_synthesis
+  <<: *template_base
+  stage: synthesis
+  dependencies:
+    - build
+  script:
+    - vivado -mode batch -source wvtcl\synthesis.tcl
+    - batch\check.bat
+  after_script:
+      - copy build\pomaa\pomaa.runs\synth_1\runme.log build\logs\project_synthesis.log
+  artifacts:
+    when: on_success
+    name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
+    paths:
+      - .\build
+    expire_in: 1 day #5 minutes
+#Job2: Simulate loading machine code to bram, executing test, writing into output files
+.job_template: &template_implementation
+  <<: *template_base
+  stage: implement
+  dependencies:
+    - synthesis
+  script:
+    - vivado -mode batch -source wvtcl\implementation.tcl
+    - batch\check.bat
+  after_script:
+      - copy build\pomaa\pomaa.runs\impl_1\runme.log build\logs\project_implementation.log
+  artifacts:
+    when: on_success
+    name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
+    paths:
+      - .\build
+    expire_in: 15 minutes #1 day #5 minutes
+#-------------------------------------------------------
+.job_template: &template_simulation1
+  <<: *template_base
+  stage: simulate
+  dependencies:
+    - build
+  script:
+    - vivado -mode batch -source wvtcl\simulation.tcl
+  # after_script:
+  #     - copy build\pomaa\pomaa.runs\impl_1\runme.log build\logs\project_implementation.log
+  artifacts:
+    when: on_success
+    name: "%CI_JOB_NAME%-%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%"
+    paths:
+      - .\build
+    expire_in: 15 minutes #1 day #5 minutes
+
+
+
+# Jobs ------------------------------------------------------------------------
+prepare:
+  <<: *template_prepare
+build:
+  <<: *template_build
+synthesis:
+  <<: *template_synthesis
+implementation:
+  <<: *template_implementation
+simulation1:
+  <<: *template_simulation1
